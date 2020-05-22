@@ -1,5 +1,9 @@
 #!/bin/bash
 
+random-string(){
+    cat /dev/urandom | tr -dc 'a-zA-Z0-9~!@#$%^&()={}[]/<>,;?:|' | fold -w 32 | head -n 1
+}
+
 cat << EOF
 Welcome!
 
@@ -54,3 +58,13 @@ cat << EOF
 EOF
 sleep 2s
 sudo mysql_secure_installation
+
+
+passwordDevelopment=$(random-string)
+
+mysql -e "CREATE DATABASE development /*\!40100 DEFAULT CHARACTER SET utf8 */;"
+mysql -e "CREATE USER development@localhost IDENTIFIED BY '$passwordDevelopment';"
+mysql -e "GRANT ALL PRIVILEGES ON development.* TO 'development'@'localhost';"
+mysql -e "FLUSH PRIVILEGES;"
+
+echo "$($passwordDevelopment) - Development Password"
