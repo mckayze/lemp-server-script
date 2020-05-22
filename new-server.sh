@@ -28,7 +28,9 @@ cat << EOF
 
 EOF
 sleep 2s
-sudo apt install nginx
+sudo apt install nginx << EOF
+  echo y
+EOF
 
 cat << EOF
 
@@ -64,12 +66,12 @@ sleep 2s
 #sudo mysql_secure_installation
 
 # Make sure that NOBODY can access the server without a password
-mysql -e "UPDATE mysql.user SET Password = PASSWORD('$passwordRoot') WHERE User = 'root'"
+mysql -e "UPDATE mysql.user SET authentication_string = PASSWORD('$passwordRoot') WHERE User = 'root'"
 # Kill the anonymous users
 mysql -e "DELETE FROM mysql.user WHERE User=''"
 mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
 # Because our hostname varies we'll use some Bash magic here.
-mysql -e "DROP USER ''@'$(hostname)'"
+mysql -e "DROP USER ''@'127.0.0.1'"
 # Kill off the demo database
 mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'"
 # Make our changes take effect
