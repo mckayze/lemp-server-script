@@ -59,6 +59,30 @@ sudo echo 'server {
     }
 }' > /etc/nginx/sites-available/staging
 
+sudo echo 'server {
+    listen 80;
+    listen [::]:80;
+    server_name production_subdomain.bulbdigital.co.uk;
+    root /var/www/production/current/web;
+    client_max_body_size 2M;
+    location / {
+        index index.htm index.html index.php;
+        try_files $uri $uri/ /index.php?$query_string;
+        auth_basic "Restricted Content";
+        auth_basic_user_file /etc/nginx/.htpasswd;
+    }
+    # pass PHP scripts to FastCGI server
+    #
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_pass unix:/var/run/php/php7.2-fpm.sock;
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+    }
+}' > /etc/nginx/sites-available/production
+
 cat << EOF
 
   #######################################################
@@ -153,3 +177,7 @@ EOF
 
 sudo apt install php-fpm php-mysql
 
+sudo ln -s /etc/nginx/sites-available/staging /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/production /etc/nginx/sites-enabled/
+sudo unlink /etc/nginx/sites-enabled/default
+sudo service nginx restart
