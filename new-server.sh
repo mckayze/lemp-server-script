@@ -19,7 +19,9 @@ cat << EOF
 EOF
 sleep 2s
 sudo apt update
-sudo apt upgrade
+sudo apt -y dist-upgrade
+sudo apt -y autoremove
+sudo apt clean
 
 cat << EOF
 
@@ -30,8 +32,32 @@ cat << EOF
 EOF
 sleep 2s
 sudo apt install nginx << EOF
-  echo y
+y
 EOF
+
+sudo echo 'server {
+    listen 80;
+    listen [::]:80;
+    server_name staging_subdomain.bulbdigital.co.uk;
+    root /var/www/staging/current/web;
+    client_max_body_size 2M;
+    location / {
+        index index.htm index.html index.php;
+        try_files $uri $uri/ /index.php?$query_string;
+        auth_basic "Restricted Content";
+        auth_basic_user_file /etc/nginx/.htpasswd;
+    }
+    # pass PHP scripts to FastCGI server
+    #
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_pass unix:/var/run/php/php7.2-fpm.sock;
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+    }
+}' > /etc/nginx/sites-available/staging
 
 cat << EOF
 
@@ -50,7 +76,9 @@ cat << EOF
 
 EOF
 sleep 2s
-sudo apt install mysql-server
+sudo apt install mysql-server << EOF
+y
+EOF
 
 passwordRoot=$(random-string)
 
@@ -69,9 +97,8 @@ sleep 2s
 mysql -e "UPDATE mysql.user SET authentication_string = PASSWORD('$passwordRoot') WHERE User = 'root'"
 # Kill the anonymous users
 mysql -e "DELETE FROM mysql.user WHERE User=''"
+# Delete random root user.. I guess?
 mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
-# Because our hostname varies we'll use some Bash magic here.
-mysql -e "DROP USER ''@'127.0.0.1'"
 # Kill off the demo database
 mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'"
 # Make our changes take effect
@@ -115,3 +142,14 @@ cat << EOF
   $passwordProduction - Production Password
 
 EOF
+
+cat << EOF
+
+  ###############################################################
+  Lastly lets install php and set it up to use nginx...
+  ###############################################################
+
+EOF
+
+sudo apt install php-fpm php-mysql
+
