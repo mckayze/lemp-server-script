@@ -49,10 +49,14 @@ EOF
 sleep 2s
 sudo apt install mysql-server
 
+passwordRoot=$(random-string)
+
 cat << EOF
 
   -----------------------------------------------------//
   Now for some security updates to MySQL...
+
+  Root Password Will Be: $passwordRoot
   -----------------------------------------------------//
 
 EOF
@@ -60,7 +64,7 @@ sleep 2s
 #sudo mysql_secure_installation
 
 # Make sure that NOBODY can access the server without a password
-mysql -e "UPDATE mysql.user SET Password = PASSWORD('CHANGEME') WHERE User = 'root'"
+mysql -e "UPDATE mysql.user SET Password = PASSWORD('$passwordRoot') WHERE User = 'root'"
 # Kill the anonymous users
 mysql -e "DELETE FROM mysql.user WHERE User=''"
 mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
