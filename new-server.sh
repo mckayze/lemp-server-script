@@ -57,7 +57,20 @@ cat << EOF
 
 EOF
 sleep 2s
-sudo mysql_secure_installation
+#sudo mysql_secure_installation
+
+# Make sure that NOBODY can access the server without a password
+mysql -e "UPDATE mysql.user SET Password = PASSWORD('CHANGEME') WHERE User = 'root'"
+# Kill the anonymous users
+mysql -e "DELETE FROM mysql.user WHERE User=''"
+mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')"
+# Because our hostname varies we'll use some Bash magic here.
+mysql -e "DROP USER ''@'$(hostname)'"
+# Kill off the demo database
+mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'"
+# Make our changes take effect
+mysql -e "FLUSH PRIVILEGES"
+# Any subsequent tries to run queries this way will get access denied because lack of usr/pwd param
 
 cat << EOF
 
@@ -68,10 +81,31 @@ cat << EOF
 EOF
 sleep 2s
 passwordDevelopment=$(random-string)
+passwordStaging=$(random-string)
+passwordProduction=$(random-string)
 
 mysql -e "CREATE DATABASE development /*\!40100 DEFAULT CHARACTER SET utf8 */;"
 mysql -e "CREATE USER development@localhost IDENTIFIED BY '$passwordDevelopment';"
 mysql -e "GRANT ALL PRIVILEGES ON development.* TO 'development'@'localhost';"
+
+mysql -e "CREATE DATABASE staging /*\!40100 DEFAULT CHARACTER SET utf8 */;"
+mysql -e "CREATE USER staging@localhost IDENTIFIED BY '$passwordStaging';"
+mysql -e "GRANT ALL PRIVILEGES ON staging.* TO 'staging'@'localhost';"
+
+mysql -e "CREATE DATABASE production /*\!40100 DEFAULT CHARACTER SET utf8 */;"
+mysql -e "CREATE USER production@localhost IDENTIFIED BY '$passwordProduction';"
+mysql -e "GRANT ALL PRIVILEGES ON production.* TO 'production'@'localhost';"
+
 mysql -e "FLUSH PRIVILEGES;"
 
-echo "$passwordDevelopment - Development Password"
+cat << EOF
+
+  -----------------------------------------------------//
+  Here are the DB passwords that were created
+  -----------------------------------------------------//
+
+  $passwordDevelopment - Development Password
+  $passwordStaging - Staging Password
+  $passwordProduction - Production Password
+
+EOF
